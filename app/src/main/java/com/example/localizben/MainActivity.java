@@ -13,7 +13,6 @@ import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
 public class MainActivity extends AppCompatActivity {
-    String ok;
     Button btnScan;
     String phoneNumber = "0666562621";
 
