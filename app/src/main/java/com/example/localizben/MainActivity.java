@@ -8,6 +8,8 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Bundle;
 import android.os.Looper;
 import android.telephony.SmsManager;
@@ -111,9 +113,33 @@ public class MainActivity extends AppCompatActivity {
                                     locationResult.getLocations().get(latestLocationIndex).getLatitude();
                             double longitude =
                                     locationResult.getLocations().get(latestLocationIndex).getLongitude();
+
+                            String strAdd = "";
+                            Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
+                            try {
+                                List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+                                if (addresses != null) {
+                                    Address returnedAddress = addresses.get(0);
+                                    StringBuilder strReturnedAddress = new StringBuilder("");
+
+                                    for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
+                                        strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
+                                        strAdd = strReturnedAddress.toString();
+                                        text_address.setText(String.format(
+                                                "Address: %s",
+                                                strAdd
+                                        ));
+                                    }
+                                } else {
+                                    text_address.setText("No address found");
+                                }
+                            } catch(Exception e) {
+                                e.printStackTrace();
+                            }
+
                             text_coordinate.setText(
                                     String.format(
-                                            "Latitude: %s\nLongitude: %s",
+                                            "Latidude: %s\nLongitude: %s",
                                             latitude,
                                             longitude
                                     )
