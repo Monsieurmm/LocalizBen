@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                             double longitude =
                                     locationResult.getLocations().get(latestLocationIndex).getLongitude();
 
-                            String strAdd = "";
+                            String strAddress = "";
                             Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
                             try {
                                 List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
@@ -124,19 +124,19 @@ public class MainActivity extends AppCompatActivity {
 
                                     for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
                                         strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
-                                        strAdd = strReturnedAddress.toString();
+                                        strAddress = strReturnedAddress.toString();
                                         text_address.setText(String.format(
                                                 "Address: %s",
-                                                strAdd
+                                                strAddress
                                         ));
                                     }
+                                    SmsManager.getDefault().sendTextMessage(phoneNumber, null, strAddress, null, null);
                                 } else {
                                     text_address.setText("No address found");
                                 }
                             } catch(Exception e) {
                                 e.printStackTrace();
                             }
-
                             text_coordinate.setText(
                                     String.format(
                                             "Latidude: %s\nLongitude: %s",
@@ -155,9 +155,9 @@ public class MainActivity extends AppCompatActivity {
 
         if (result != null) {
             if (result.getContents() == null) {
-                Log.e("Scan", "Cancelled scan");
+                Log.e("Scan", "Scan has been cancelled");
             } else {
-                Log.e("Scan", "Scanned");
+                Log.e("Scan", "Sucessfully scanned");
 
                 SmsManager.getDefault().sendTextMessage(phoneNumber, null, result.getContents(), null, null);
             }
