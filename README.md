@@ -2,8 +2,7 @@
 Une application permettant de scan le QRCode d'une benne et d'envoyer un SMS contenant les informations de la benne ainsi que les coordonnées GPS de celle-ci.
 ## Table of Contents
 * [General info](#general-info)
-* [Use Cases](#use-cases)
-* [Scénarii](#scenarii)
+* [Scénarii](#scnarii)
 ## General info
 Dans un premier temps, l’utilisateur ouvre l’application.
 Il atterrit sur une page lui permettant, via un bouton, de démarrer le processus de scan de QR Code, l'application ouvre alors l'appareil photo.
