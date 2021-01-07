@@ -38,8 +38,6 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_LOCATION_PERMISSION = 1;
     Button btnScan;
-    Button btnLocation;
-    TextView text_coordinate;
     TextView text_address;
     FusedLocationProviderClient mFusedLocationClient;
     String phoneNumber = "0666562621";
@@ -50,8 +48,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         btnScan = (Button) findViewById(R.id.btnScan);
-        //btnLocation = (Button) findViewById(R.id.btnLocation);
-        // text_coordinate = (TextView) findViewById(R.id.text_coordinate);
         text_address = (TextView) findViewById(R.id.text_address);
 
         getLastLocation();
@@ -70,23 +66,6 @@ public class MainActivity extends AppCompatActivity {
                 integrator.initiateScan();
             }
         });
-
-        /*btnLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (ContextCompat.checkSelfPermission(
-                        getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(
-                            MainActivity.this,
-                            new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                            REQUEST_CODE_LOCATION_PERMISSION
-                    );
-                } else {
-                    getLocation();
-                }
-            }
-        });*/
     }
 
     @Override
@@ -153,60 +132,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    /*private void getCurrentLocation() {
-        // request
-        LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        LocationServices.getFusedLocationProviderClient(MainActivity.this)
-                .requestLocationUpdates(locationRequest, new LocationCallback() {
-                    // response
-                    @Override
-                    public void onLocationResult(LocationResult locationResult) {
-                        super.onLocationResult(locationResult);
-                        LocationServices.getFusedLocationProviderClient(MainActivity.this)
-                                .removeLocationUpdates(this);
-                        if (locationResult != null && locationResult.getLocations().size() > 0) {
-                            int latestLocationIndex = locationResult.getLocations().size() - 1;
-                            double latitude =
-                                    locationResult.getLocations().get(latestLocationIndex).getLatitude();
-                            double longitude =
-                                    locationResult.getLocations().get(latestLocationIndex).getLongitude();
-
-                            String strAddress = "";
-                            Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
-                            try {
-                                List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
-                                if (addresses != null) {
-                                    Address returnedAddress = addresses.get(0);
-                                    StringBuilder strReturnedAddress = new StringBuilder("");
-
-                                    for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
-                                        strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
-                                        strAddress = strReturnedAddress.toString();
-                                        text_address.setText(String.format(
-                                                "Address: %s",
-                                                strAddress
-                                        ));
-                                    }
-                                    // SmsManager.getDefault().sendTextMessage(phoneNumber, null, strAddress, null, null);
-                                } else {
-                                    text_address.setText("No address found");
-                                }
-                            } catch(Exception e) {
-                                e.printStackTrace();
-                            }
-                            text_coordinate.setText(
-                                    String.format(
-                                            "Latidude: %s\nLongitude: %s",
-                                            latitude,
-                                            longitude
-                                    )
-                            );
-                        }
-                    }
-                }, Looper.getMainLooper());
-    }*/
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
