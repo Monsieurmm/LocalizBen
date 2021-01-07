@@ -3,10 +3,10 @@ package com.example.localizben;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.content.Context;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -14,7 +14,6 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Looper;
 import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.View;
@@ -23,9 +22,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.zxing.integration.android.IntentIntegrator;
@@ -100,10 +96,7 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
                     strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
                     strAddress = strReturnedAddress.toString();
-                    text_address.setText(String.format(
-                            "Address: %s",
-                            strAddress
-                    ));
+                    text_address.setText(strAddress);
                 }
             } else {
                 text_address.setText("No address found");
@@ -121,6 +114,24 @@ public class MainActivity extends AppCompatActivity {
                 public void onSuccess(Location location) {
                     if (location != null) {
                         getLocation(location);
+                        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (which){
+                                    case DialogInterface.BUTTON_POSITIVE:
+                                        //Yes button clicked
+                                        break;
+
+                                    case DialogInterface.BUTTON_NEGATIVE:
+                                        //No button clicked
+                                        break;
+                                }
+                            }
+                        };
+
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setMessage("Is the following address correct?\n" + text_address.getText()).setPositiveButton("Yes", dialogClickListener)
+                                .setNegativeButton("No", dialogClickListener).show();
                     }
                 }
             });
@@ -143,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Log.e("Scan", "Sucessfully scanned");
 
-                Toast.makeText(this, result.getContents() + text_address.getText(), Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "The skip with :\n" + result.getContents() + "\n is parked at :\n" + text_address.getText(), Toast.LENGTH_SHORT).show();
                 // SmsManager.getDefault().sendTextMessage(phoneNumber, null, result.getContents() + text_address.getText(), null, null);
             }
         } else {
