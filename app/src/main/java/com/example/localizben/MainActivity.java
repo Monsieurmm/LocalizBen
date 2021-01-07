@@ -3,15 +3,17 @@ package com.example.localizben;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
-import android.os.Looper;
 import android.telephony.SmsManager;
 import android.util.Log;
 import android.view.View;
@@ -20,10 +22,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
-import com.google.android.gms.location.LocationRequest;
-import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
@@ -34,10 +34,8 @@ import java.util.Locale;
 public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CODE_LOCATION_PERMISSION = 1;
     Button btnScan;
-    Button btnLocation;
-    TextView text_coordinate;
     TextView text_address;
-    FusedLocationProviderClient fusedLocationProviderClient;
+    FusedLocationProviderClient mFusedLocationClient;
     String phoneNumber = "0666562621";
 
     @Override
@@ -46,11 +44,11 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         btnScan = (Button) findViewById(R.id.btnScan);
-        btnLocation = (Button) findViewById(R.id.btnLocation);
-        text_coordinate = (TextView) findViewById(R.id.text_coordinate);
         text_address = (TextView) findViewById(R.id.text_address);
 
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        getLastLocation();
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -64,89 +62,86 @@ public class MainActivity extends AppCompatActivity {
                 integrator.initiateScan();
             }
         });
-
-        btnLocation.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (ContextCompat.checkSelfPermission(
-                        getApplicationContext(), Manifest.permission.ACCESS_FINE_LOCATION
-                ) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions(
-                            MainActivity.this,
-                            new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                            REQUEST_CODE_LOCATION_PERMISSION
-                    );
-                } else {
-                    getCurrentLocation();
-                }
-            }
-        });
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == REQUEST_CODE_LOCATION_PERMISSION && grantResults.length > 0) {
-            getCurrentLocation();
-        } else {
-            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show();
+        if (requestCode == REQUEST_CODE_LOCATION_PERMISSION) {
+            // If the permission is granted, get the location,
+            // else, show a Toast
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLastLocation();
+            } else {
+                Toast.makeText(this,
+                        "error",
+                        Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
-    private void getCurrentLocation() {
-        LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(3000);
-        locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        LocationServices.getFusedLocationProviderClient(MainActivity.this)
-                .requestLocationUpdates(locationRequest, new LocationCallback(){
+    private void getLocation(Location location) {
+        String strAddress = "";
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        List<Address> addresses = null;
+        try {
+            addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+            if (addresses != null) {
+                Address returnedAddress = addresses.get(0);
+                StringBuilder strReturnedAddress = new StringBuilder("");
+                for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
+                    strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
+                    strAddress = strReturnedAddress.toString();
+                    text_address.setText(strAddress);
+                }
+            } else {
+                text_address.setText("No address found");
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-                    @Override
-                    public void onLocationResult(LocationResult locationResult) {
-                        super.onLocationResult(locationResult);
-                        LocationServices.getFusedLocationProviderClient(MainActivity.this)
-                                .removeLocationUpdates(this);
-                        if (locationResult != null && locationResult.getLocations().size() > 0) {
-                            int latestLocationIndex = locationResult.getLocations().size() - 1;
-                            double latitude =
-                                    locationResult.getLocations().get(latestLocationIndex).getLatitude();
-                            double longitude =
-                                    locationResult.getLocations().get(latestLocationIndex).getLongitude();
+    private void getLastLocation() {
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mFusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    if (location != null) {
+                        getLocation(location);
+                        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                switch (which){
+                                    case DialogInterface.BUTTON_POSITIVE:
+                                        //Yes button clicked
+                                        break;
 
-                            String strAdd = "";
-                            Geocoder geocoder = new Geocoder(MainActivity.this, Locale.getDefault());
-                            try {
-                                List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
-                                if (addresses != null) {
-                                    Address returnedAddress = addresses.get(0);
-                                    StringBuilder strReturnedAddress = new StringBuilder("");
-
-                                    for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
-                                        strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
-                                        strAdd = strReturnedAddress.toString();
-                                        text_address.setText(String.format(
-                                                "Address: %s",
-                                                strAdd
-                                        ));
-                                    }
-                                } else {
-                                    text_address.setText("No address found");
+                                    case DialogInterface.BUTTON_NEGATIVE:
+                                        //No button clicked
+                                        break;
                                 }
-                            } catch(Exception e) {
-                                e.printStackTrace();
                             }
+                        };
 
-                            text_coordinate.setText(
-                                    String.format(
-                                            "Latidude: %s\nLongitude: %s",
-                                            latitude,
-                                            longitude
-                                    )
-                            );
-                        }
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setMessage("Is the following address correct?\n" + text_address.getText()).setPositiveButton("Yes", dialogClickListener)
+                                .setNegativeButton("No", dialogClickListener).show();
                     }
-                }, Looper.getMainLooper());
+                }
+            });
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                }, REQUEST_CODE_LOCATION_PERMISSION);
+            }
+        }
     }
 
     @Override
@@ -155,11 +150,12 @@ public class MainActivity extends AppCompatActivity {
 
         if (result != null) {
             if (result.getContents() == null) {
-                Log.e("Scan", "Cancelled scan");
+                Log.e("Scan", "Scan has been cancelled");
             } else {
-                Log.e("Scan", "Scanned");
+                Log.e("Scan", "Sucessfully scanned");
 
-                SmsManager.getDefault().sendTextMessage(phoneNumber, null, result.getContents(), null, null);
+                Toast.makeText(this, "The skip with :\n" + result.getContents() + "\n is parked at :\n" + text_address.getText(), Toast.LENGTH_SHORT).show();
+                // SmsManager.getDefault().sendTextMessage(phoneNumber, null, result.getContents() + text_address.getText(), null, null);
             }
         } else {
             super.onActivityResult(requestCode, resultCode, data);
