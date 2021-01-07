@@ -6,10 +6,13 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
 import android.location.Geocoder;
+import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Looper;
 import android.telephony.SmsManager;
@@ -24,6 +27,7 @@ import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.zxing.integration.android.IntentIntegrator;
 import com.google.zxing.integration.android.IntentResult;
 
@@ -37,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     Button btnLocation;
     TextView text_coordinate;
     TextView text_address;
-    FusedLocationProviderClient fusedLocationProviderClient;
+    FusedLocationProviderClient mFusedLocationClient;
     String phoneNumber = "0666562621";
 
     @Override
@@ -46,11 +50,13 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         btnScan = (Button) findViewById(R.id.btnScan);
-        btnLocation = (Button) findViewById(R.id.btnLocation);
-        text_coordinate = (TextView) findViewById(R.id.text_coordinate);
+        //btnLocation = (Button) findViewById(R.id.btnLocation);
+        // text_coordinate = (TextView) findViewById(R.id.text_coordinate);
         text_address = (TextView) findViewById(R.id.text_address);
 
-        fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(this);
+        getLastLocation();
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         btnScan.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -65,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        btnLocation.setOnClickListener(new View.OnClickListener() {
+        /*btnLocation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (ContextCompat.checkSelfPermission(
@@ -77,31 +83,84 @@ public class MainActivity extends AppCompatActivity {
                             REQUEST_CODE_LOCATION_PERMISSION
                     );
                 } else {
-                    getCurrentLocation();
+                    getLocation();
                 }
             }
-        });
+        });*/
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-        if (requestCode == REQUEST_CODE_LOCATION_PERMISSION && grantResults.length > 0) {
-            getCurrentLocation();
-        } else {
-            Toast.makeText(this, "Permission denied", Toast.LENGTH_SHORT).show();
+        if (requestCode == REQUEST_CODE_LOCATION_PERMISSION) {
+            // If the permission is granted, get the location,
+            // else, show a Toast
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                getLastLocation();
+            } else {
+                Toast.makeText(this,
+                        "error",
+                        Toast.LENGTH_SHORT).show();
+            }
         }
     }
 
-    private void getCurrentLocation() {
+    private void getLocation(Location location) {
+        String strAddress = "";
+        Geocoder geocoder = new Geocoder(this, Locale.getDefault());
+        List<Address> addresses = null;
+        try {
+            addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+            if (addresses != null) {
+                Address returnedAddress = addresses.get(0);
+                StringBuilder strReturnedAddress = new StringBuilder("");
+                for (int i = 0; i <= returnedAddress.getMaxAddressLineIndex(); i ++) {
+                    strReturnedAddress.append(returnedAddress.getAddressLine(i)).append("\n");
+                    strAddress = strReturnedAddress.toString();
+                    text_address.setText(String.format(
+                            "Address: %s",
+                            strAddress
+                    ));
+                }
+            } else {
+                text_address.setText("No address found");
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void getLastLocation() {
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            mFusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                @Override
+                public void onSuccess(Location location) {
+                    if (location != null) {
+                        getLocation(location);
+                    }
+                }
+            });
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                requestPermissions(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                }, REQUEST_CODE_LOCATION_PERMISSION);
+            }
+        }
+    }
+
+    /*private void getCurrentLocation() {
+        // request
         LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(3000);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         LocationServices.getFusedLocationProviderClient(MainActivity.this)
-                .requestLocationUpdates(locationRequest, new LocationCallback(){
-
+                .requestLocationUpdates(locationRequest, new LocationCallback() {
+                    // response
                     @Override
                     public void onLocationResult(LocationResult locationResult) {
                         super.onLocationResult(locationResult);
@@ -130,7 +189,7 @@ public class MainActivity extends AppCompatActivity {
                                                 strAddress
                                         ));
                                     }
-                                    SmsManager.getDefault().sendTextMessage(phoneNumber, null, strAddress, null, null);
+                                    // SmsManager.getDefault().sendTextMessage(phoneNumber, null, strAddress, null, null);
                                 } else {
                                     text_address.setText("No address found");
                                 }
@@ -147,7 +206,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 }, Looper.getMainLooper());
-    }
+    }*/
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -159,7 +218,8 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 Log.e("Scan", "Sucessfully scanned");
 
-                SmsManager.getDefault().sendTextMessage(phoneNumber, null, result.getContents(), null, null);
+                Toast.makeText(this, result.getContents() + text_address.getText(), Toast.LENGTH_SHORT).show();
+                // SmsManager.getDefault().sendTextMessage(phoneNumber, null, result.getContents() + text_address.getText(), null, null);
             }
         } else {
             super.onActivityResult(requestCode, resultCode, data);
